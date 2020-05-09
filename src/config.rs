@@ -81,6 +81,7 @@ impl Config {
     })
   }
 
+  #[rustfmt::skip]
   fn default_committer_name() -> String { "Mergeotron".to_string() }
 }
 

@@ -15,26 +15,26 @@ const TEMPLATE: &str = "\
 ";
 
 fn main() {
-    let matches = App::new(crate_name!())
-        .version(crate_version!())
-        .about("build git branches from merge requests")
-        .template(TEMPLATE)
-        .arg(
-            Arg::with_name("config")
-                .short("c")
-                .long("config")
-                .value_name("FILE")
-                .required(true)
-                .help("config file to use")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("auto")
-                .long("auto")
-                .help("do not run in interactive mode"),
-        )
-        .get_matches();
+  let matches = App::new(crate_name!())
+    .version(crate_version!())
+    .about("build git branches from merge requests")
+    .template(TEMPLATE)
+    .arg(
+      Arg::with_name("config")
+        .short("c")
+        .long("config")
+        .value_name("FILE")
+        .required(true)
+        .help("config file to use")
+        .takes_value(true),
+    )
+    .arg(
+      Arg::with_name("auto")
+        .long("auto")
+        .help("do not run in interactive mode"),
+    )
+    .get_matches();
 
-    let merger = Merger::from_config_file(matches.value_of("config").unwrap());
-    println!("{:?}", merger);
+  let merger = Merger::from_config_file(matches.value_of("config").unwrap());
+  println!("{:?}", merger);
 }

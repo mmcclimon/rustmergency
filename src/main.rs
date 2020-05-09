@@ -5,6 +5,7 @@ mod remote;
 mod step;
 
 use clap::{crate_name, crate_version, App, Arg};
+use std::error::Error;
 
 use merger::Merger;
 
@@ -37,6 +38,15 @@ fn main() {
     )
     .get_matches();
 
-  let merger = Merger::from_config_file(matches.value_of("config").unwrap());
-  merger.run(matches.is_present("auto"));
+  let merger = Merger::from_config_file(matches.value_of("config").unwrap())
+    .unwrap_or_else(|e| die(e));
+
+  merger
+    .run(matches.is_present("auto"))
+    .unwrap_or_else(|e| die(e));
+}
+
+fn die(err: impl Error) -> ! {
+  println!("{}", err);
+  std::process::exit(1);
 }

@@ -38,6 +38,8 @@ pub struct LocalConfig {
   pub path:          String,
   pub target_branch: String,
   pub upstream_base: String,
+  #[serde(default, rename = "clone")]
+  pub should_clone:  bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

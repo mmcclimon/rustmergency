@@ -1,4 +1,5 @@
 mod config;
+mod errors;
 mod merger;
 
 use clap::{crate_name, crate_version, App, Arg};

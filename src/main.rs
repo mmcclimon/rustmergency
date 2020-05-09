@@ -38,5 +38,5 @@ fn main() {
     .get_matches();
 
   let merger = Merger::from_config_file(matches.value_of("config").unwrap());
-  println!("{:#?}", merger);
+  merger.run(matches.is_present("auto"));
 }

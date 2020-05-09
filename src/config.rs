@@ -11,10 +11,10 @@ type RemoteCollection = HashMap<String, Box<dyn Remote>>;
 
 #[derive(Debug)]
 pub struct Config {
-  remotes:     RemoteCollection,
-  meta:        MetaConfig,
-  local:       LocalConfig,
-  build_steps: Vec<BuildStep>,
+  pub remotes: RemoteCollection,
+  pub meta:    MetaConfig,
+  pub local:   LocalConfig,
+  pub steps:   Vec<BuildStep>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,17 +27,17 @@ struct RawConfig {
 }
 
 #[derive(Debug, Deserialize)]
-struct MetaConfig {
+pub struct MetaConfig {
   #[serde(default = "Config::default_committer_name")]
-  committer_name:  String,
-  committer_email: String,
+  pub committer_name:  String,
+  pub committer_email: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct LocalConfig {
-  path:          String,
-  target_branch: String,
-  upstream_base: String,
+pub struct LocalConfig {
+  pub path:          String,
+  pub target_branch: String,
+  pub upstream_base: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -50,12 +50,12 @@ pub struct RemoteConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StepConfig {
-  name:        String,
-  remote:      String,
-  label:       String,
-  trusted_org: Option<String>,
-  tag_format:  Option<String>,
-  push_tag_to: Option<String>,
+  pub name:        String,
+  pub remote:      String,
+  pub label:       String,
+  pub trusted_org: Option<String>,
+  pub tag_format:  Option<String>,
+  pub push_tag_to: Option<String>,
 }
 
 impl Config {
@@ -68,7 +68,7 @@ impl Config {
       .map_err(|e| MergerError::De(filename.to_string(), e))?;
 
     let remotes = cfg.assemble_remotes();
-    let build_steps = cfg.assemble_steps(&remotes)?;
+    let steps = cfg.assemble_steps(&remotes)?;
 
     let meta = cfg.meta;
     let local = cfg.local;
@@ -77,7 +77,7 @@ impl Config {
       remotes,
       meta,
       local,
-      build_steps,
+      steps,
     })
   }
 

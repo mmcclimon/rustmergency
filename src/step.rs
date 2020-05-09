@@ -2,7 +2,7 @@ use crate::config::StepConfig;
 
 #[derive(Debug)]
 pub struct BuildStep {
-  config: StepConfig,
+  pub config: StepConfig,
 }
 
 impl BuildStep {

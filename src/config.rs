@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs::File, io::Read};
 use serde::Deserialize;
 use toml;
 
-use crate::errors::MergerResult;
+use crate::errors::{MergerError, MergerResult};
 
 #[derive(Debug)]
 pub struct Config {}
@@ -12,13 +12,14 @@ pub struct Config {}
 struct RawConfig {
   local:       LocalConfig,
   meta:        MetaConfig,
-  remote:      HashMap<String, RemoteConfig>,
+  #[serde(rename = "remote")]
+  remotes:     HashMap<String, RemoteConfig>,
   build_steps: Vec<StepConfig>,
 }
 
 #[derive(Debug, Deserialize)]
 struct MetaConfig {
-  #[serde(default = "default_committer_name")]
+  #[serde(default = "Config::default_committer_name")]
   committer_name:  String,
   committer_email: String,
 }
@@ -53,12 +54,13 @@ impl Config {
     let mut s = String::new();
     file.read_to_string(&mut s)?;
 
-    let cfg: RawConfig = toml::from_str(&s).expect("Invalid config file");
-    // let cfg = s.parse::<toml::Value>().unwrap();
+    let cfg: RawConfig = toml::from_str(&s)
+      .map_err(|e| MergerError::Config(filename.to_string(), e))?;
+
     println!("{:#?}", cfg);
 
     Ok(Config {})
   }
-}
 
-fn default_committer_name() -> String { "Mergotron".to_string() }
+  fn default_committer_name() -> String { "Mergotron".to_string() }
+}

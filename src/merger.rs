@@ -7,7 +7,15 @@ pub struct Merger {
 
 impl Merger {
   pub fn from_config_file(file: &str) -> Self {
-    let config = Config::new(file).unwrap();
-    Merger { config }
+    let config = Config::new(file);
+
+    if let Err(e) = config {
+      println!("{}", e);
+      std::process::exit(1);
+    }
+
+    Merger {
+      config: config.unwrap(),
+    }
   }
 }

@@ -2,6 +2,7 @@ mod config;
 mod errors;
 mod merger;
 mod remote;
+mod step;
 
 use clap::{crate_name, crate_version, App, Arg};
 

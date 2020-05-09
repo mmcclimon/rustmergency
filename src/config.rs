@@ -5,10 +5,16 @@ use toml;
 
 use crate::errors::{MergerError, MergerResult};
 use crate::remote::{self, GitLab, Github, Remote};
+use crate::step::BuildStep;
+
+type RemoteCollection = HashMap<String, Box<dyn Remote>>;
 
 #[derive(Debug)]
 pub struct Config {
-  remotes: HashMap<String, Box<dyn Remote>>,
+  remotes:     RemoteCollection,
+  meta:        MetaConfig,
+  local:       LocalConfig,
+  build_steps: Vec<BuildStep>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,7 +40,7 @@ struct LocalConfig {
   upstream_base: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct RemoteConfig {
   interface:   remote::Impl,
   pub api_url: String,
@@ -42,11 +48,12 @@ pub struct RemoteConfig {
   pub repo:    String,
 }
 
-#[derive(Debug, Deserialize)]
-struct StepConfig {
+#[derive(Debug, Clone, Deserialize)]
+pub struct StepConfig {
   name:        String,
   remote:      String,
   label:       String,
+  trusted_org: Option<String>,
   tag_format:  Option<String>,
   push_tag_to: Option<String>,
 }
@@ -58,18 +65,27 @@ impl Config {
     file.read_to_string(&mut s)?;
 
     let cfg: RawConfig = toml::from_str(&s)
-      .map_err(|e| MergerError::Config(filename.to_string(), e))?;
+      .map_err(|e| MergerError::De(filename.to_string(), e))?;
 
     let remotes = cfg.assemble_remotes();
+    let build_steps = cfg.assemble_steps(&remotes)?;
 
-    Ok(Config { remotes })
+    let meta = cfg.meta;
+    let local = cfg.local;
+
+    Ok(Config {
+      remotes,
+      meta,
+      local,
+      build_steps,
+    })
   }
 
   fn default_committer_name() -> String { "Mergeotron".to_string() }
 }
 
 impl RawConfig {
-  fn assemble_remotes(&self) -> HashMap<String, Box<dyn Remote>> {
+  fn assemble_remotes(&self) -> RemoteCollection {
     let mut ret = HashMap::new();
 
     for (name, cfg) in &self.remotes {
@@ -84,5 +100,27 @@ impl RawConfig {
     }
 
     ret
+  }
+
+  fn assemble_steps(
+    &self,
+    remotes: &RemoteCollection,
+  ) -> MergerResult<Vec<BuildStep>> {
+    let mut ret = Vec::with_capacity(remotes.len());
+
+    for step in &self.build_steps {
+      if !remotes.contains_key(&step.remote) {
+        let err = format!(
+          "step {} wants a remote named {}, but corresponding remote not found",
+          step.name, step.remote
+        );
+
+        return Err(MergerError::Config(err));
+      }
+
+      ret.push(BuildStep::new(step));
+    }
+
+    Ok(ret)
   }
 }

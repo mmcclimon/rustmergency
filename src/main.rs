@@ -1,6 +1,7 @@
 mod config;
 mod errors;
 mod merger;
+mod remote;
 
 use clap::{crate_name, crate_version, App, Arg};
 
@@ -36,5 +37,5 @@ fn main() {
     .get_matches();
 
   let merger = Merger::from_config_file(matches.value_of("config").unwrap());
-  println!("{:?}", merger);
+  println!("{:#?}", merger);
 }

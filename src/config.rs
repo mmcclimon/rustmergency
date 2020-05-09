@@ -4,9 +4,12 @@ use serde::Deserialize;
 use toml;
 
 use crate::errors::{MergerError, MergerResult};
+use crate::remote::{self, GitLab, Github, Remote};
 
 #[derive(Debug)]
-pub struct Config {}
+pub struct Config {
+  remotes: HashMap<String, Box<dyn Remote>>,
+}
 
 #[derive(Debug, Deserialize)]
 struct RawConfig {
@@ -31,12 +34,12 @@ struct LocalConfig {
   upstream_base: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct RemoteConfig {
-  interface_class: String,
-  api_url:         String,
-  api_key:         String,
-  repo:            String,
+#[derive(Debug, Deserialize, Clone)]
+pub struct RemoteConfig {
+  interface:   remote::Impl,
+  pub api_url: String,
+  pub api_key: String,
+  pub repo:    String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,10 +60,29 @@ impl Config {
     let cfg: RawConfig = toml::from_str(&s)
       .map_err(|e| MergerError::Config(filename.to_string(), e))?;
 
-    println!("{:#?}", cfg);
+    let remotes = cfg.assemble_remotes();
 
-    Ok(Config {})
+    Ok(Config { remotes })
   }
 
-  fn default_committer_name() -> String { "Mergotron".to_string() }
+  fn default_committer_name() -> String { "Mergeotron".to_string() }
+}
+
+impl RawConfig {
+  fn assemble_remotes(&self) -> HashMap<String, Box<dyn Remote>> {
+    let mut ret = HashMap::new();
+
+    for (name, cfg) in &self.remotes {
+      use remote::Impl;
+
+      let remote: Box<dyn Remote> = match cfg.interface {
+        Impl::Github => Box::new(Github::new(name, cfg)),
+        Impl::GitLab => Box::new(GitLab::new(name, cfg)),
+      };
+
+      ret.insert(name.to_string(), remote);
+    }
+
+    ret
+  }
 }

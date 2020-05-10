@@ -11,10 +11,10 @@ pub struct Merger {
 
 impl Merger {
   pub fn from_config_file(file: &str) -> MergerResult<Self> {
-    let config = Config::new(file);
+    let config = Config::new(file)?;
 
     Ok(Merger {
-      config:      config.unwrap(),
+      config,
       interactive: Cell::new(true),
     })
   }

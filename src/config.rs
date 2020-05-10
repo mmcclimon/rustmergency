@@ -66,14 +66,15 @@ impl Config {
     let mut s = String::new();
     file.read_to_string(&mut s)?;
 
-    let cfg: RawConfig = toml::from_str(&s)
+    let mut cfg: RawConfig = toml::from_str(&s)
       .map_err(|e| MergerError::De(filename.to_string(), e))?;
 
-    let remotes = cfg.assemble_remotes();
+    let remotes = cfg.assemble_remotes()?;
     let steps = cfg.assemble_steps(&remotes)?;
 
     let meta = cfg.meta;
     let local = cfg.local;
+    local.assert_ok(&remotes)?;
 
     Ok(Config {
       remotes,
@@ -85,14 +86,20 @@ impl Config {
 
   #[rustfmt::skip]
   fn default_committer_name() -> String { "Mergeotron".to_string() }
+
+  pub fn remote_named(&self, name: &str) -> Option<&Box<dyn Remote>> {
+    self.remotes.get(name)
+  }
 }
 
 impl RawConfig {
-  fn assemble_remotes(&self) -> RemoteCollection {
+  fn assemble_remotes(&mut self) -> MergerResult<RemoteCollection> {
     let mut ret = HashMap::new();
 
-    for (name, cfg) in &self.remotes {
+    for (name, cfg) in &mut self.remotes {
       use remote::Impl;
+
+      cfg.assert_ok(name)?;
 
       let remote: Box<dyn Remote> = match cfg.interface {
         Impl::Github => Box::new(Github::new(name, cfg)),
@@ -102,7 +109,7 @@ impl RawConfig {
       ret.insert(name.to_string(), remote);
     }
 
-    ret
+    Ok(ret)
   }
 
   fn assemble_steps(
@@ -125,5 +132,75 @@ impl RawConfig {
     }
 
     Ok(ret)
+  }
+}
+
+impl LocalConfig {
+  // This is here so that later we can safely unwrap the result of splitting the
+  // strings.
+  fn assert_ok(&self, remotes: &RemoteCollection) -> MergerResult<()> {
+    if self.upstream_base.contains(" ") {
+      return Err(MergerError::Config(
+        "local.upstream_base contains spaces".to_string(),
+      ));
+    }
+
+    if self.target_branch.contains(" ") {
+      return Err(MergerError::Config(
+        "target_branch contains spaces".to_string(),
+      ));
+    }
+
+    if self.upstream_base.matches("/").count() != 1 {
+      return Err(MergerError::Config(
+        "local.upstream_base must have exactly one slash".to_string(),
+      ));
+    }
+
+    let upstream = self.upstream_remote_name();
+
+    if remotes.get(upstream).is_none() {
+      return Err(MergerError::Config(format!(
+        "local.upstream_base wants remote named {}, which was not found",
+        upstream
+      )));
+    }
+
+    Ok(())
+  }
+
+  pub fn upstream_remote<'a>(&self, config: &'a Config) -> &'a Box<dyn Remote> {
+    config.remote_named(self.upstream_remote_name()).unwrap()
+  }
+
+  pub fn upstream_remote_name(&self) -> &str {
+    self.upstream_base.split("/").next().unwrap()
+  }
+
+  pub fn upstream_branch_name(&self) -> &str {
+    self.upstream_base.split("/").nth(1).unwrap()
+  }
+}
+
+impl RemoteConfig {
+  fn assert_ok(&mut self, name: &str) -> MergerResult<()> {
+    let key = &self.api_key;
+
+    // make ENV: API keys work
+    if key.starts_with("ENV:") {
+      let want = key.trim_start_matches("ENV:");
+
+      let from_env = std::env::var(want).map_err(|_| {
+        let err = format!(
+          "remote {} wants an environment variable named {}, which was not found",
+          name, want
+        );
+        MergerError::Config(err)
+      })?;
+
+      self.api_key = from_env;
+    }
+
+    Ok(())
   }
 }

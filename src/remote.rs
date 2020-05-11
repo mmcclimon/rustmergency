@@ -32,10 +32,10 @@ pub trait Remote: Debug {
 
 #[derive(Debug)]
 pub struct Github {
-  name: String,
-  config: RemoteConfig,
+  name:        String,
+  config:      RemoteConfig,
   http_client: HttpClient,
-  clone_url: RefCell<Option<String>>,
+  clone_url:   RefCell<Option<String>>,
 }
 
 impl Github {
@@ -57,10 +57,10 @@ impl Github {
       .unwrap();
 
     Self {
-      name: name.to_string(),
-      config: cfg.clone(),
+      name:        name.to_string(),
+      config:      cfg.clone(),
       http_client: client,
-      clone_url: RefCell::new(None),
+      clone_url:   RefCell::new(None),
     }
   }
 
@@ -106,10 +106,10 @@ impl Remote for Github {
 
 #[derive(Debug)]
 pub struct GitLab {
-  name: String,
-  config: RemoteConfig,
+  name:        String,
+  config:      RemoteConfig,
   http_client: HttpClient,
-  clone_url: RefCell<Option<String>>,
+  clone_url:   RefCell<Option<String>>,
 }
 
 impl GitLab {
@@ -126,10 +126,10 @@ impl GitLab {
       .unwrap();
 
     Self {
-      name: name.to_string(),
-      config: cfg.clone(),
+      name:        name.to_string(),
+      config:      cfg.clone(),
       http_client: client,
-      clone_url: RefCell::new(None),
+      clone_url:   RefCell::new(None),
     }
   }
 

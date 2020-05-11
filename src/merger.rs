@@ -5,7 +5,7 @@ use crate::errors::{MergerError, MergerResult};
 
 #[derive(Debug)]
 pub struct Merger {
-  pub config: Config,
+  pub config:      Config,
   pub interactive: Cell<bool>,
 }
 

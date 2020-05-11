@@ -1,4 +1,7 @@
-use std::{cell::Cell, env, ffi::OsStr, path::PathBuf, process::Command};
+use std::{
+  cell::Cell, collections::HashMap, env, ffi::OsStr, path::PathBuf,
+  process::Command,
+};
 
 use crate::config::Config;
 use crate::errors::{MergerError, MergerResult};
@@ -85,6 +88,44 @@ impl Merger {
         dir.to_string_lossy(),
       ))
     })?;
+
+    self.ensure_remotes()
+  }
+
+  fn ensure_remotes(&self) -> MergerResult<()> {
+    let output = run_git(&["remote", "-v"])?;
+
+    use std::iter::FromIterator;
+    let have_remotes: HashMap<&str, &str> = HashMap::from_iter(
+      output
+        .split("\n")
+        .filter(|l| l.ends_with("(fetch)"))
+        .map(|l| l.trim_end_matches(" (fetch)"))
+        .map(|l| {
+          let bits = l.split("\t").take(2).collect::<Vec<_>>();
+          (bits[0], bits[1])
+        }),
+    );
+
+    for r in self.config.all_remotes() {
+      let name = r.name();
+      let remote_url = &r.clone_url()?;
+
+      if let Some(have_url) = have_remotes.get(name) {
+        if have_url != remote_url {
+          return Err(MergerError::Config(format!(
+            "mismatched remote {}: have {}, want {}",
+            name, have_url, remote_url
+          )));
+        }
+
+        // nothing to do!
+        continue;
+      }
+
+      println!("adding missing remote for {} at {}", name, remote_url);
+      run_git(&["remote", "add", name, remote_url])?;
+    }
 
     Ok(())
   }

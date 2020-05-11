@@ -90,6 +90,10 @@ impl Config {
   pub fn remote_named(&self, name: &str) -> Option<&Box<dyn Remote>> {
     self.remotes.get(name)
   }
+
+  pub fn all_remotes(&self) -> impl Iterator<Item = &Box<dyn Remote>> {
+    self.remotes.values()
+  }
 }
 
 impl RawConfig {

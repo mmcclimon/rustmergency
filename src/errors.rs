@@ -1,3 +1,4 @@
+use reqwest::Error as HttpError;
 use std::error::Error;
 use std::fmt;
 use std::io::Error as IoError;
@@ -11,6 +12,7 @@ pub type MergerResult<T> = Result<T, MergerError>;
 pub enum MergerError {
   Io(IoError),
   De(String, DeserializationError),
+  Http(HttpError),
   Utf(FromUtf8Error),
   Config(String),
   Local(String),
@@ -25,11 +27,12 @@ impl fmt::Display for MergerError {
       MergerError::Utf(err) => write!(f, "{}", err),
       MergerError::De(filename, err) => {
         write!(f, "error reading {}:\n  {}", filename, err)
-      },
+      }
+      MergerError::Http(err) => write!(f, "http error: {}", err),
       MergerError::Config(err) => write!(f, "invalid config file:\n  {}", err),
       MergerError::Local(err) => {
         write!(f, "problem with local setup:\n  {}", err)
-      },
+      }
       MergerError::Git(cmd, err) => write!(
         f,
         "problem encountered running git:\ncommand: git {}\n{}",
@@ -51,5 +54,11 @@ impl From<IoError> for MergerError {
 impl From<FromUtf8Error> for MergerError {
   fn from(err: FromUtf8Error) -> Self {
     MergerError::Utf(err)
+  }
+}
+
+impl From<HttpError> for MergerError {
+  fn from(err: HttpError) -> Self {
+    MergerError::Http(err)
   }
 }

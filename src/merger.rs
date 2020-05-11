@@ -5,7 +5,7 @@ use crate::errors::{MergerError, MergerResult};
 
 #[derive(Debug)]
 pub struct Merger {
-  pub config:      Config,
+  pub config: Config,
   pub interactive: Cell<bool>,
 }
 
@@ -44,19 +44,36 @@ impl Merger {
   }
 
   fn prepare_local_directory(&self) -> MergerResult<()> {
-    let dir = PathBuf::from(&self.config.local.path);
+    let local_conf = &self.config.local;
+    let dir = PathBuf::from(&local_conf.path);
 
     if !dir.is_dir() {
-      if !self.config.local.should_clone {
+      let dir_string = dir.to_string_lossy();
+
+      if !local_conf.should_clone {
         let err = format!(
           "path {} does not exist, and clone was not requested",
-          dir.to_string_lossy()
+          dir_string,
         );
 
         return Err(MergerError::Local(err));
       }
 
-      // TODO clone.
+      env::set_current_dir(dir.parent().unwrap())?;
+
+      let remote = local_conf.upstream_remote(&self.config);
+      let clone_url = remote.clone_url()?;
+
+      println!("cloning into {}...", dir_string);
+
+      run_git(&[
+        "clone",
+        "--recursive",
+        "-o",
+        remote.name(),
+        &clone_url,
+        &dir.file_name().unwrap().to_string_lossy(),
+      ])?;
     }
 
     env::set_current_dir(&dir)?;

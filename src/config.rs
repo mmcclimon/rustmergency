@@ -12,51 +12,51 @@ type RemoteCollection = HashMap<String, Box<dyn Remote>>;
 #[derive(Debug)]
 pub struct Config {
   pub remotes: RemoteCollection,
-  pub meta:    MetaConfig,
-  pub local:   LocalConfig,
-  pub steps:   Vec<BuildStep>,
+  pub meta: MetaConfig,
+  pub local: LocalConfig,
+  pub steps: Vec<BuildStep>,
 }
 
 #[derive(Debug, Deserialize)]
 struct RawConfig {
-  local:       LocalConfig,
-  meta:        MetaConfig,
+  local: LocalConfig,
+  meta: MetaConfig,
   #[serde(rename = "remote")]
-  remotes:     HashMap<String, RemoteConfig>,
+  remotes: HashMap<String, RemoteConfig>,
   build_steps: Vec<StepConfig>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct MetaConfig {
   #[serde(default = "Config::default_committer_name")]
-  pub committer_name:  String,
+  pub committer_name: String,
   pub committer_email: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct LocalConfig {
-  pub path:          String,
+  pub path: String,
   pub target_branch: String,
   pub upstream_base: String,
   #[serde(default, rename = "clone")]
-  pub should_clone:  bool,
+  pub should_clone: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RemoteConfig {
-  interface:   remote::Impl,
+  interface: remote::Impl,
   pub api_url: String,
   pub api_key: String,
-  pub repo:    String,
+  pub repo: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StepConfig {
-  pub name:        String,
-  pub remote:      String,
-  pub label:       String,
+  pub name: String,
+  pub remote: String,
+  pub label: String,
   pub trusted_org: Option<String>,
-  pub tag_format:  Option<String>,
+  pub tag_format: Option<String>,
   pub push_tag_to: Option<String>,
 }
 
@@ -177,7 +177,7 @@ impl LocalConfig {
     self.upstream_base.split("/").next().unwrap()
   }
 
-  pub fn upstream_branch_name(&self) -> &str {
+  pub fn _upstream_branch_name(&self) -> &str {
     self.upstream_base.split("/").nth(1).unwrap()
   }
 }

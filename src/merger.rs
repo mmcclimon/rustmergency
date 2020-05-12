@@ -3,8 +3,11 @@ use std::{
   process::Command,
 };
 
+use log::{debug, info};
+
 use crate::config::Config;
 use crate::errors::{MergerError, MergerResult};
+use crate::logger;
 
 #[derive(Debug)]
 pub struct Merger {
@@ -15,6 +18,8 @@ pub struct Merger {
 impl Merger {
   pub fn from_config_file(file: &str) -> MergerResult<Self> {
     let config = Config::new(file)?;
+
+    logger::init().unwrap();
 
     Ok(Merger {
       config,
@@ -27,18 +32,24 @@ impl Merger {
       self.interactive.set(false);
     }
 
-    self.prepare_local_directory()?;
+    {
+      let _guard = logger::proxy_prefix("prep: ".to_string());
+      self.prepare_local_directory()?;
+    }
 
     for step in &self.config.steps {
-      println!("would fetch mrs for step {}", step.config.name);
+      let _guard = logger::proxy_prefix(format!("{}: ", step.config.name));
+      info!("would fetch mrs for step {}", step.config.name);
     }
 
     if self.interactive.get() {
       self.confirm_plan();
     }
 
+    let _guard = logger::proxy_prefix("execute: ".to_string());
+
     for step in &self.config.steps {
-      println!("would merge step {}", step.config.name);
+      info!("would merge step {}", step.config.name);
     }
 
     self.finalize();
@@ -67,7 +78,7 @@ impl Merger {
       let remote = local_conf.upstream_remote(&self.config);
       let clone_url = remote.clone_url()?;
 
-      println!("cloning into {}...", dir_string);
+      info!("cloning into {}...", dir_string);
 
       run_git(&[
         "clone",
@@ -142,7 +153,17 @@ where
 {
   // We clone this here for the sole purpose of generating a pretty error if git
   // fails.
-  let args_clone = args.clone();
+  let cmd = std::iter::once("git".to_string())
+    .chain(
+      args
+        .clone()
+        .into_iter()
+        .map(|s| (s.as_ref()).to_string_lossy().into_owned()),
+    )
+    .collect::<Vec<_>>()
+    .join(" ");
+
+  debug!("run: {}", cmd);
 
   let output = Command::new("git")
     .args(args)
@@ -150,15 +171,17 @@ where
     .map_err(|e| MergerError::Io(e))?;
 
   if !output.status.success() {
-    let cmd = args_clone
-      .into_iter()
-      .map(|s| (*s.as_ref()).to_string_lossy().into_owned())
-      .collect::<Vec<_>>()
-      .join(" ");
-
     let stderr = String::from_utf8(output.stderr)?;
     return Err(MergerError::Git(cmd, stderr));
   }
 
-  Ok(String::from_utf8(output.stdout)?.trim_end().to_string())
+  let out = String::from_utf8(output.stdout)?.trim_end().to_string();
+
+  let _g = logger::proxy_prefix("(git): ".to_string());
+
+  for line in out.split("\n") {
+    debug!("{}", line);
+  }
+
+  Ok(out)
 }

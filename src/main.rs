@@ -1,5 +1,6 @@
 mod config;
 mod errors;
+mod logger;
 mod merger;
 mod remote;
 mod step;

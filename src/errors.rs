@@ -27,15 +27,15 @@ impl fmt::Display for MergerError {
       MergerError::Utf(err) => write!(f, "{}", err),
       MergerError::De(filename, err) => {
         write!(f, "error reading {}:\n  {}", filename, err)
-      }
+      },
       MergerError::Http(err) => write!(f, "http error: {}", err),
       MergerError::Config(err) => write!(f, "invalid config file:\n  {}", err),
       MergerError::Local(err) => {
         write!(f, "problem with local setup:\n  {}", err)
-      }
+      },
       MergerError::Git(cmd, err) => write!(
         f,
-        "problem encountered running git:\ncommand: git {}\n{}",
+        "problem encountered running git:\ncommand: {}\n{}",
         cmd,
         err.trim_end()
       ),

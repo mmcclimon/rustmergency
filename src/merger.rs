@@ -8,6 +8,7 @@ use log::{debug, info};
 use crate::config::Config;
 use crate::errors::{MergerError, MergerResult};
 use crate::logger;
+use crate::proxy_prefix;
 
 #[derive(Debug)]
 pub struct Merger {
@@ -32,13 +33,10 @@ impl Merger {
       self.interactive.set(false);
     }
 
-    {
-      let _guard = logger::proxy_prefix("prep: ".to_string());
-      self.prepare_local_directory()?;
-    }
+    self.prepare_local_directory()?;
 
     for step in &self.config.steps {
-      let _guard = logger::proxy_prefix(format!("{}: ", step.config.name));
+      proxy_prefix!("{}: ", step.config.name);
       info!("would fetch mrs for step {}", step.config.name);
     }
 
@@ -46,9 +44,8 @@ impl Merger {
       self.confirm_plan();
     }
 
-    let _guard = logger::proxy_prefix("execute: ".to_string());
-
     for step in &self.config.steps {
+      proxy_prefix!("{}: ", step.config.name);
       info!("would merge step {}", step.config.name);
     }
 
@@ -58,6 +55,8 @@ impl Merger {
   }
 
   fn prepare_local_directory(&self) -> MergerResult<()> {
+    proxy_prefix!("prep: ");
+
     let local_conf = &self.config.local;
     let dir = PathBuf::from(&local_conf.path);
 
@@ -177,7 +176,7 @@ where
 
   let out = String::from_utf8(output.stdout)?.trim_end().to_string();
 
-  let _g = logger::proxy_prefix("(git): ".to_string());
+  proxy_prefix!("(git): ");
 
   for line in out.split("\n") {
     debug!("{}", line);

@@ -39,15 +39,30 @@ impl log::Log for LOGGER {
   fn flush(&self) {}
 }
 
-pub struct PrefixGuard;
+// This is an empty struct with special drop semantics. You get one by calling
+// push_proxy_prefix(), which pushes a prefix onto the stack. When this guard
+// object is dropped, the prefix will be popped off the stack and logging will
+// continue as normal. This is a bit of a pain to manage manually, so there's a
+// macro, proxy_prefix!(...) which will do it for you.
+#[derive(Debug)]
+pub struct LoggerPrefixGuard;
 
-pub fn proxy_prefix(prefix: String) -> PrefixGuard {
+pub fn push_proxy_prefix(prefix: String) -> LoggerPrefixGuard {
   let mut stack = LOGGER.prefix_stack.write().unwrap();
   stack.push(prefix);
-  PrefixGuard {}
+  LoggerPrefixGuard {}
 }
 
-impl Drop for PrefixGuard {
+#[macro_export]
+macro_rules! proxy_prefix {
+  ($($arg:tt)*) => {
+    let _proxy_prefix_guard_object = $crate::logger::push_proxy_prefix(
+      std::fmt::format(format_args!($($arg)*))
+    );
+  };
+}
+
+impl Drop for LoggerPrefixGuard {
   fn drop(&mut self) {
     LOGGER.prefix_stack.write().unwrap().pop();
   }
